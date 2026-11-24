@@ -1,13 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
-import {
-  CheckCheck,
-  Save,
-  Calendar,
-  Loader2,
-  ClipboardCheck,
-} from "lucide-react";
+import { CheckCheck, Save, Calendar, Clock, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   loadSessionAttendanceAction,
@@ -42,33 +36,27 @@ const STATUS_OPTIONS: {
   activeClass: string;
 }[] = [
   {
-    value: "present",
+    value: "hadir",
     short: "H",
     label: "Hadir",
     activeClass: "bg-emerald-600 text-white border-emerald-600",
   },
   {
-    value: "late",
-    short: "T",
-    label: "Telat",
-    activeClass: "bg-amber-500 text-white border-amber-500",
-  },
-  {
-    value: "excused",
+    value: "izin",
     short: "I",
     label: "Izin",
     activeClass: "bg-blue-600 text-white border-blue-600",
   },
   {
-    value: "sick",
+    value: "sakit",
     short: "S",
     label: "Sakit",
     activeClass: "bg-purple-600 text-white border-purple-600",
   },
   {
-    value: "absent",
+    value: "alpa",
     short: "A",
-    label: "Alpha",
+    label: "Alpa",
     activeClass: "bg-red-600 text-white border-red-600",
   },
 ];
@@ -78,13 +66,13 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
 
   const [selectedClassId, setSelectedClassId] = useState(classes[0]?.id ?? "");
   const [sessionDate, setSessionDate] = useState(today);
+  const [startTime, setStartTime] = useState("16:00");
   const [topic, setTopic] = useState("");
   const [loadingSession, setLoadingSession] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Map student_id -> { status, note }
   const [records, setRecords] = useState<
-    Record<string, { status: AttendanceStatus; note: string }>
+    Record<string, { status: AttendanceStatus; notes: string }>
   >({});
 
   const currentClass = useMemo(
@@ -92,7 +80,6 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
     [classes, selectedClassId]
   );
 
-  // Muat absensi tersimpan tiap kali kelas atau tanggal berubah
   useEffect(() => {
     if (!selectedClassId || !sessionDate) return;
 
@@ -106,15 +93,15 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
       if (cancelled) return;
 
       setTopic(res.topic);
-      const nextMap: Record<string, { status: AttendanceStatus; note: string }> =
-        {};
+      setStartTime(res.startTime || "16:00");
 
-      // Default semua siswa ke 'present' jika sesi belum pernah disimpan
+      const nextMap: Record<string, { status: AttendanceStatus; notes: string }> =
+        {};
       (currentClass?.students ?? []).forEach((st) => {
         const found = res.records.find((r) => r.student_id === st.id);
         nextMap[st.id] = {
-          status: found?.status ?? "present",
-          note: found?.note ?? "",
+          status: found?.status ?? "hadir",
+          notes: found?.notes ?? "",
         };
       });
 
@@ -131,34 +118,28 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
   function setStatus(studentId: string, status: AttendanceStatus) {
     setRecords((prev) => ({
       ...prev,
-      [studentId]: {
-        status,
-        note: prev[studentId]?.note ?? "",
-      },
+      [studentId]: { status, notes: prev[studentId]?.notes ?? "" },
     }));
   }
 
-  function setNote(studentId: string, note: string) {
+  function setNotes(studentId: string, notes: string) {
     setRecords((prev) => ({
       ...prev,
-      [studentId]: {
-        status: prev[studentId]?.status ?? "present",
-        note,
-      },
+      [studentId]: { status: prev[studentId]?.status ?? "hadir", notes },
     }));
   }
 
   function markAllPresent() {
-    const next: Record<string, { status: AttendanceStatus; note: string }> = {};
+    const next: Record<string, { status: AttendanceStatus; notes: string }> = {};
     (currentClass?.students ?? []).forEach((st) => {
-      next[st.id] = { status: "present", note: records[st.id]?.note ?? "" };
+      next[st.id] = { status: "hadir", notes: records[st.id]?.notes ?? "" };
     });
     setRecords(next);
     toast.success("Semua siswa ditandai Hadir.");
   }
 
   const summary = useMemo(() => {
-    const counts = { present: 0, late: 0, excused: 0, sick: 0, absent: 0 };
+    const counts = { hadir: 0, izin: 0, sakit: 0, alpa: 0 };
     Object.values(records).forEach((r) => {
       counts[r.status]++;
     });
@@ -171,13 +152,14 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
 
     const payload = currentClass.students.map((st) => ({
       student_id: st.id,
-      status: records[st.id]?.status ?? "present",
-      note: records[st.id]?.note ?? "",
+      status: records[st.id]?.status ?? "hadir",
+      notes: records[st.id]?.notes ?? "",
     }));
 
     const res = await saveAttendanceBatchAction({
       classId: currentClass.id,
       sessionDate,
+      startTime,
       topic,
       records: payload,
     });
@@ -191,21 +173,20 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
   }
 
   return (
-    <div className="space-y-4 pb-20">
-      {/* Header */}
+    <div className="space-y-4 pb-24">
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
           Absensi Lapangan
         </h1>
         <p className="text-sm text-slate-500">
-          Ketuk status kehadiran tiap siswa (H: Hadir, T: Telat, I: Izin, S:
-          Sakit, A: Alpha).
+          Ketuk status kehadiran tiap siswa (H: Hadir, I: Izin, S: Sakit, A:
+          Alpa).
         </p>
       </div>
 
       {/* Filter Sesi */}
       <Card>
-        <CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-3">
+        <CardContent className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
           <div className="space-y-1.5">
             <Label htmlFor="att-class">Kelas Latihan</Label>
             <select
@@ -237,6 +218,20 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
           </div>
 
           <div className="space-y-1.5">
+            <Label htmlFor="att-time">Jam Mulai</Label>
+            <div className="relative">
+              <Clock className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+              <Input
+                id="att-time"
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
             <Label htmlFor="att-topic">Materi / Topik Latihan</Label>
             <Input
               id="att-topic"
@@ -252,19 +247,16 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap gap-1.5 text-xs">
           <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
-            Hadir: {summary.present}
-          </Badge>
-          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-            Telat: {summary.late}
+            Hadir: {summary.hadir}
           </Badge>
           <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">
-            Izin: {summary.excused}
+            Izin: {summary.izin}
           </Badge>
           <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-100">
-            Sakit: {summary.sick}
+            Sakit: {summary.sakit}
           </Badge>
           <Badge className="bg-red-100 text-red-800 hover:bg-red-100">
-            Alpha: {summary.absent}
+            Alpa: {summary.alpa}
           </Badge>
         </div>
 
@@ -296,7 +288,7 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
       ) : (
         <div className="space-y-2.5">
           {currentClass.students.map((st, idx) => {
-            const current = records[st.id] ?? { status: "present", note: "" };
+            const current = records[st.id] ?? { status: "hadir", notes: "" };
             return (
               <Card key={st.id}>
                 <CardContent className="flex flex-col gap-3 p-3.5 sm:flex-row sm:items-center sm:justify-between">
@@ -308,8 +300,7 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
                   </div>
 
                   <div className="flex flex-col gap-2 sm:items-end">
-                    {/* 5 Tombol 1-Tap besar (ramah jempol Android) */}
-                    <div className="grid grid-cols-5 gap-1.5">
+                    <div className="grid grid-cols-4 gap-1.5">
                       {STATUS_OPTIONS.map((opt) => {
                         const isSelected = current.status === opt.value;
                         return (
@@ -317,7 +308,7 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
                             key={opt.value}
                             type="button"
                             onClick={() => setStatus(st.id, opt.value)}
-                            className={`flex h-10 min-w-[44px] items-center justify-center rounded-lg border text-xs font-bold transition-all active:scale-95 ${
+                            className={`flex h-10 min-w-[48px] items-center justify-center rounded-lg border text-xs font-bold transition-all active:scale-95 ${
                               isSelected
                                 ? opt.activeClass
                                 : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
@@ -330,13 +321,12 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
                       })}
                     </div>
 
-                    {/* Input catatan muncul otomatis kalau bukan Hadir */}
-                    {current.status !== "present" && (
+                    {current.status !== "hadir" && (
                       <Input
-                        placeholder="Catatan (opsional, misal: demam / macet)"
-                        value={current.note}
-                        onChange={(e) => setNote(st.id, e.target.value)}
-                        className="h-8 text-xs sm:w-64"
+                        placeholder="Catatan (misal: cedera engkel ringan / acara keluarga)"
+                        value={current.notes}
+                        onChange={(e) => setNotes(st.id, e.target.value)}
+                        className="h-8 text-xs sm:w-72"
                       />
                     )}
                   </div>
@@ -347,7 +337,6 @@ export function AttendanceManager({ classes }: AttendanceManagerProps) {
         </div>
       )}
 
-      {/* Tombol Simpan Sticky di Bawah */}
       {currentClass && currentClass.students.length > 0 && (
         <div className="fixed inset-x-0 bottom-16 z-30 border-t border-slate-200 bg-white/95 p-3 backdrop-blur md:static md:border-0 md:bg-transparent md:p-0">
           <Button
