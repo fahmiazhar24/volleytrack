@@ -30,7 +30,7 @@ export default async function PublicReportPage({
 
   return (
     <main className="min-h-screen bg-slate-100 px-3 py-6 sm:px-6 print:bg-white print:p-0">
-      <ReportCardView snapshot={snapshot} showPrintButton />
+      <ReportCardView snapshot={snapshot} accessToken={token} showPrintButton />
     </main>
   );
 }

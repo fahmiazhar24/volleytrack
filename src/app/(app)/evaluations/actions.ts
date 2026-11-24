@@ -133,8 +133,8 @@ export async function saveEvaluationAction(input: {
     .maybeSingle();
 
   // Jika sudah published, tetap pertahankan status published kecuali direvisi lewat modul Rapor
-  const nextStatus =
-    existing?.status === "published" ? "published" : input.status;
+  const nextStatus: "draft" | "review" | "published" =
+  existing?.status === "published" ? "published" : input.status;
 
   const { error } = await supabase.from("evaluations").upsert(
     {

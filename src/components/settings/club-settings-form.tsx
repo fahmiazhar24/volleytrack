@@ -1,10 +1,18 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Loader2, Sliders, ShieldCheck } from "lucide-react";
+import {
+  Save,
+  Loader2,
+  Sliders,
+  ShieldCheck,
+  Upload,
+  Image as ImageIcon,
+} from "lucide-react";
 import { toast } from "sonner";
 import {
   updateClubSettingsAction,
+  uploadClubAssetAction,
   type ClubSettingsPayload,
 } from "@/app/(app)/settings/actions";
 import type { ScoreScale } from "@/lib/scoring";
@@ -22,6 +30,14 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
   const [headCoachName, setHeadCoachName] = useState(
     initialSettings.head_coach_name
   );
+  const [logoUrl, setLogoUrl] = useState(initialSettings.logo_url ?? "");
+  const [signatureUrl, setSignatureUrl] = useState(
+    initialSettings.head_coach_signature_url ?? ""
+  );
+  const [uploadingKind, setUploadingKind] = useState<
+    "logo" | "signature" | null
+  >(null);
+
   const [primaryColor, setPrimaryColor] = useState(
     initialSettings.primary_color
   );
@@ -41,6 +57,39 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
     initialSettings.report_language
   );
   const [saving, setSaving] = useState(false);
+
+  async function handleAssetUpload(
+    kind: "logo" | "signature",
+    e: React.ChangeEvent<HTMLInputElement>
+  ) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingKind(kind);
+    const fd = new FormData();
+    fd.append("settingsId", initialSettings.id);
+    fd.append("kind", kind);
+    fd.append("file", file);
+
+    const res = await uploadClubAssetAction(fd);
+    setUploadingKind(null);
+    e.target.value = "";
+
+    if (res?.error) {
+      toast.error(res.error);
+      return;
+    }
+
+    if (res.url) {
+      if (kind === "logo") setLogoUrl(res.url);
+      else setSignatureUrl(res.url);
+    }
+    toast.success(
+      kind === "logo"
+        ? "Logo klub berhasil diperbarui!"
+        : "Tanda tangan Head Coach berhasil diperbarui!"
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -69,25 +118,92 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
-      <div>
-        <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          Pengaturan Klub & Rapor
-        </h1>
-        <p className="text-sm text-slate-500">
-          Identitas klub, standar skala nilai rapor, dan aturan perhitungan
-          kehadiran.
-        </p>
-      </div>
-
-      {/* Identitas Klub */}
+      {/* Identitas Klub & Aset Visual */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-base">
             <ShieldCheck className="h-4 w-4 text-orange-500" />
-            Identitas & Branding Klub
+            Identitas, Logo & Tanda Tangan Klub
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-5">
+          {/* Upload Logo & Tanda Tangan */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            {/* Logo Klub */}
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+              <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+                {logoUrl ? (
+                  <img
+                    src={logoUrl}
+                    alt="Logo Klub"
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <ImageIcon className="h-6 w-6 text-slate-300" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <p className="text-sm font-semibold text-slate-900">Logo Klub</p>
+                <p className="text-[11px] text-slate-500">
+                  PNG/WebP transparan, maks 2 MB.
+                </p>
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100">
+                  {uploadingKind === "logo" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  {logoUrl ? "Ganti Logo" : "Unggah Logo"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => handleAssetUpload("logo", e)}
+                    className="hidden"
+                    disabled={uploadingKind !== null}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Tanda Tangan Head Coach */}
+            <div className="flex items-center gap-4 rounded-xl border border-slate-200 bg-slate-50/70 p-3.5">
+              <div className="flex h-16 w-24 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white">
+                {signatureUrl ? (
+                  <img
+                    src={signatureUrl}
+                    alt="Tanda Tangan"
+                    className="h-full w-full object-contain p-1"
+                  />
+                ) : (
+                  <span className="text-[10px] text-slate-400">Belum ada</span>
+                )}
+              </div>
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <p className="text-sm font-semibold text-slate-900">
+                  TTD Head Coach
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  Tampil di bagian pengesahan rapor.
+                </p>
+                <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 py-1 text-xs font-medium text-slate-700 hover:bg-slate-100">
+                  {uploadingKind === "signature" ? (
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <Upload className="h-3.5 w-3.5" />
+                  )}
+                  {signatureUrl ? "Ganti TTD" : "Unggah TTD"}
+                  <input
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={(e) => handleAssetUpload("signature", e)}
+                    className="hidden"
+                    disabled={uploadingKind !== null}
+                  />
+                </label>
+              </div>
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <Label htmlFor="club-name">Nama Klub / Akademi</Label>
@@ -163,7 +279,7 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
             <Label>Format Tampilan Skor di Rapor Orangtua</Label>
             <p className="text-xs text-slate-500">
               Input coach di lapangan tetap menggunakan rubrik 1–5 agar cepat
-              dan seragam. Pilihan ini mengatur format yang tampil di rapor.
+              dan seragam.
             </p>
             <div className="grid grid-cols-1 gap-3 pt-1 sm:grid-cols-2">
               <button
@@ -179,8 +295,7 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
                   Skala 1–5 + Predikat (Disarankan)
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Contoh: <strong>3.80 / 5.00 (Mahir)</strong>. Ramah pembinaan
-                  atlet usia dini.
+                  Contoh: <strong>3.80 / 5.00 (Mahir)</strong>.
                 </p>
               </button>
 
@@ -197,8 +312,7 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
                   Konversi Skala 1–100 + Predikat
                 </p>
                 <p className="mt-1 text-xs text-slate-500">
-                  Contoh: <strong>76 / 100 (Mahir)</strong>. Dikonversi otomatis
-                  (skor × 20).
+                  Contoh: <strong>76 / 100 (Mahir)</strong> (skor × 20).
                 </p>
               </button>
             </div>
@@ -218,8 +332,7 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
                   Hitung status &ldquo;Izin&rdquo; sebagai Hadir
                 </p>
                 <p className="text-xs text-slate-500">
-                  Jika dicentang, siswa yang izin resmi tidak mengurangi
-                  persentase kehadiran di rapor.
+                  Izin resmi tidak mengurangi persentase kehadiran di rapor.
                 </p>
               </div>
             </label>
@@ -236,8 +349,8 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
                   Hitung status &ldquo;Sakit&rdquo; sebagai Hadir
                 </p>
                 <p className="text-xs text-slate-500">
-                  Jika dicentang, ketidakhadiran karena sakit tidak mengurangi
-                  persentase kehadiran di rapor.
+                  Ketidakhadiran karena sakit tidak mengurangi persentase
+                  kehadiran.
                 </p>
               </div>
             </label>
@@ -272,7 +385,7 @@ export function ClubSettingsForm({ initialSettings }: ClubSettingsFormProps) {
           ) : (
             <Save className="mr-2 h-4 w-4" />
           )}
-          Simpan Pengaturan
+          Simpan Pengaturan Klub
         </Button>
       </div>
     </form>

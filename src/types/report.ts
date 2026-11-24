@@ -6,7 +6,9 @@ export interface ReportSnapshot {
   revision_note: string | null;
   club: {
     club_name: string;
+    logo_url: string | null;
     head_coach_name: string;
+    head_coach_signature_url: string | null;
     primary_color: string;
     secondary_color: string;
     score_scale: ScoreScale;

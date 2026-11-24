@@ -4,12 +4,21 @@ import {
   StudentsManager,
   type StudentRow,
 } from "@/components/students/students-manager";
+import {
+  GuardiansAccountsPanel,
+  type GuardianAccountRow,
+} from "@/components/students/guardians-accounts-panel";
 
 export default async function StudentsPage() {
   const profile = await getCurrentUserProfile();
   const supabase = await createClient();
 
-  const [{ data: rawStudents }, { data: classes }] = await Promise.all([
+  const [
+    { data: rawStudents },
+    { data: classes },
+    { data: rawGuardians },
+    { data: settings },
+  ] = await Promise.all([
     supabase
       .from("students")
       .select(
@@ -26,6 +35,16 @@ export default async function StudentsPage() {
       .select("id, name")
       .eq("is_active", true)
       .order("name"),
+    supabase
+      .from("guardians")
+      .select(
+        `
+        id, user_id, full_name, phone_wa, email,
+        student_guardians(students(full_name, is_active))
+      `
+      )
+      .order("full_name"),
+    supabase.from("club_settings").select("club_name").limit(1).single(),
   ]);
 
   const students: StudentRow[] = (rawStudents ?? []).map((s: any) => {
@@ -48,11 +67,32 @@ export default async function StudentsPage() {
     };
   });
 
+  const guardians: GuardianAccountRow[] = (rawGuardians ?? []).map((g: any) => ({
+    id: g.id,
+    user_id: g.user_id ?? null,
+    full_name: g.full_name,
+    phone_wa: g.phone_wa,
+    email: g.email ?? null,
+    children_names: (g.student_guardians ?? [])
+      .filter((sg: any) => sg.students?.is_active)
+      .map((sg: any) => sg.students.full_name),
+  }));
+
+  const isAdmin = profile?.role === "admin";
+
   return (
-    <StudentsManager
-      students={students}
-      classes={classes ?? []}
-      isAdmin={profile?.role === "admin"}
-    />
+    <div className="space-y-8 pb-20">
+      <StudentsManager
+        students={students}
+        classes={classes ?? []}
+        isAdmin={isAdmin}
+      />
+
+      <GuardiansAccountsPanel
+        guardians={guardians}
+        clubName={settings?.club_name ?? "VolleyTrack Academy"}
+        isAdmin={isAdmin}
+      />
+    </div>
   );
 }

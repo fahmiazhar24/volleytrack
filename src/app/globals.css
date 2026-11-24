@@ -60,3 +60,24 @@
     @apply bg-background text-foreground;
   }
 }
+
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  body {
+    background: #ffffff !important;
+  }
+}
