@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { APP_CONFIG } from "@/config/app";
-import "./globals.css";
 import { NetworkStatus } from "@/components/layout/network-status";
+import { PwaRegister } from "@/components/layout/pwa-register";
+import "./globals.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -43,6 +44,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-slate-50 font-sans antialiased`}
       >
+        <NetworkStatus />
+        <PwaRegister />
         {children}
         <Toaster position="top-center" richColors />
       </body>
