@@ -228,14 +228,12 @@ export function ReportsManager({
                     )}
                   </div>
                 </div>
-
-                {/* Aksi */}
+{/* Aksi */}
                 <div className="flex flex-wrap items-center gap-2">
                   {row.report_token && (
                     <>
                       <Link
                         href={`/r/${row.report_token}`}
-                        target="_blank"
                         className="inline-flex h-9 items-center gap-1.5 rounded-md border border-slate-200 bg-white px-3 text-xs font-medium text-slate-700 hover:bg-slate-50"
                       >
                         <ExternalLink className="h-3.5 w-3.5" />
