@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trophy, Printer, Calendar, CheckCircle2, Award } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  ArrowLeft,
+  Trophy,
+  Printer,
+  Calendar,
+  CheckCircle2,
+  Award,
+} from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import type { ReportSnapshot } from "@/types/report";
 import { formatScore } from "@/lib/scoring";
@@ -26,6 +34,7 @@ export function ReportCardView({
   accessToken,
   showPrintButton = true,
 }: ReportCardViewProps) {
+  const router = useRouter();
   const [reportUrl, setReportUrl] = useState("");
   const { club, period, student, attendance, categories, evaluation } =
     snapshot;
@@ -37,10 +46,37 @@ export function ReportCardView({
     }
   }, [accessToken]);
 
+  const handleBack = () => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push("/");
+    }
+  };
+
   return (
     <div className="mx-auto max-w-3xl space-y-4 print:max-w-none print:space-y-0">
       {showPrintButton && (
-        <div className="flex flex-wrap items-center justify-between gap-2 print:hidden">
+        <div className="space-y-2 print:hidden">
+          <div className="flex items-center justify-between gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleBack}
+              className="bg-white"
+            >
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Kembali
+            </Button>
+            <Button
+              type="button"
+              onClick={() => window.print()}
+              className="bg-slate-900 text-white hover:bg-slate-800"
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Cetak / Simpan PDF
+            </Button>
+          </div>
           <p className="text-xs text-slate-500">
             Versi Rapor: <strong>v{snapshot.version}</strong> • Terbit{" "}
             {new Date(snapshot.generated_at).toLocaleDateString("id-ID", {
@@ -49,14 +85,6 @@ export function ReportCardView({
               year: "numeric",
             })}
           </p>
-          <Button
-            type="button"
-            onClick={() => window.print()}
-            className="bg-slate-900 text-white hover:bg-slate-800"
-          >
-            <Printer className="mr-2 h-4 w-4" />
-            Cetak / Simpan PDF
-          </Button>
         </div>
       )}
 
