@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.volleytrack_gamma.twa",
+        "sha256_cert_fingerprints": ["2C:6F:F4:42:1D:41:FF:6A:33:8B:71:1F:2C:F5:A9:3C:EA:19:2F:35:0D:28:26:68:07:BE:9D:FE:E6:D9:3C:49"]
+      }
+    }]
