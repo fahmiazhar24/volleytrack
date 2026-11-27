@@ -15,6 +15,7 @@ import {
   type StaffMember,
   type ClassOption,
 } from "@/components/settings/team-accounts-manager";
+import { PredicateRulesManager } from "@/components/settings/predicate-rules-manager";
 
 export default async function SettingsPage() {
   const profile = await getCurrentUserProfile();
@@ -35,7 +36,7 @@ export default async function SettingsPage() {
     supabase
       .from("club_settings")
       .select(
-        "id, club_name, logo_url, head_coach_name, head_coach_signature_url, primary_color, secondary_color, score_scale, count_izin_as_present, count_sakit_as_present, report_language"
+        "id, club_name, logo_url, head_coach_name, head_coach_signature_url, primary_color, secondary_color, score_scale, count_izin_as_present, count_sakit_as_present, report_language, predicate_rules"
       )
       .limit(1)
       .single(),
@@ -105,6 +106,11 @@ export default async function SettingsPage() {
           report_language:
             (settings.report_language as "id" | "en" | "both") ?? "id",
         }}
+      />
+
+      <PredicateRulesManager
+        settingsId={settings.id}
+        initialRules={settings.predicate_rules}
       />
 
       <PeriodsManager periods={periods ?? []} />
