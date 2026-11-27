@@ -2,10 +2,6 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserProfile } from "@/lib/auth";
 import { ClubSettingsForm } from "@/components/settings/club-settings-form";
-import {
-  TeamAccountsManager,
-  type StaffMember,
-} from "@/components/settings/team-accounts-manager";
 import type { ScoreScale } from "@/lib/scoring";
 import { PeriodsManager } from "@/components/settings/periods-manager";
 import {
@@ -14,6 +10,11 @@ import {
   type SkillRow,
   type RubricRow,
 } from "@/components/settings/rubrics-manager";
+import {
+  TeamAccountsManager,
+  type StaffMember,
+  type ClassOption,
+} from "@/components/settings/team-accounts-manager";
 
 export default async function SettingsPage() {
   const profile = await getCurrentUserProfile();
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
     { data: skillCategories },
     { data: skills },
     { data: skillRubrics },
+    { data: classRows },
   ] = await Promise.all([
     supabase
       .from("club_settings")
@@ -61,6 +63,11 @@ export default async function SettingsPage() {
       .from("skill_rubrics")
       .select("id, skill_id, level, label, description, suggestion_template")
       .order("level", { ascending: true }),
+    supabase
+      .from("classes")
+      .select("id, name, level, coach_id, is_active")
+      .eq("is_active", true)
+      .order("name", { ascending: true }),
   ]);
 
   if (!settings) {
@@ -110,6 +117,7 @@ export default async function SettingsPage() {
 
       <TeamAccountsManager
         staffList={(staffRows ?? []) as StaffMember[]}
+        classes={(classRows ?? []) as ClassOption[]}
         currentUserId={profile.id}
         clubName={settings.club_name}
       />
