@@ -7,6 +7,7 @@ import {
   type StaffMember,
 } from "@/components/settings/team-accounts-manager";
 import type { ScoreScale } from "@/lib/scoring";
+import { PeriodsManager } from "@/components/settings/periods-manager";
 
 export default async function SettingsPage() {
   const profile = await getCurrentUserProfile();
@@ -15,21 +16,26 @@ export default async function SettingsPage() {
   }
 
   const supabase = await createClient();
-  const [{ data: settings }, { data: staffRows }] = await Promise.all([
-    supabase
-      .from("club_settings")
-      .select(
-        "id, club_name, logo_url, head_coach_name, head_coach_signature_url, primary_color, secondary_color, score_scale, count_izin_as_present, count_sakit_as_present, report_language"
-      )
-      .limit(1)
-      .single(),
-    supabase
-      .from("profiles")
-      .select("id, full_name, email, role, phone_wa, is_active")
-      .in("role", ["admin", "coach"])
-      .order("role")
-      .order("full_name"),
-  ]);
+  const [{ data: settings }, { data: staffRows }, { data: periods }] =
+    await Promise.all([
+      supabase
+        .from("club_settings")
+        .select(
+          "id, club_name, logo_url, head_coach_name, head_coach_signature_url, primary_color, secondary_color, score_scale, count_izin_as_present, count_sakit_as_present, report_language"
+        )
+        .limit(1)
+        .single(),
+      supabase
+        .from("profiles")
+        .select("id, full_name, email, role, phone_wa, is_active")
+        .in("role", ["admin", "coach"])
+        .order("role")
+        .order("full_name"),
+      supabase
+        .from("periods")
+        .select("id, name, start_date, end_date, status")
+        .order("start_date", { ascending: false }),
+    ]);
 
   if (!settings) {
     return (
@@ -46,8 +52,8 @@ export default async function SettingsPage() {
           Pengaturan Klub & Akun Tim
         </h1>
         <p className="text-sm text-slate-500">
-          Kelola identitas klub, logo, tanda tangan rapor, aturan penilaian, dan
-          akun pelatih.
+          Kelola identitas klub, logo, tanda tangan rapor, aturan penilaian,
+          periode evaluasi, dan akun pelatih.
         </p>
       </div>
 
@@ -67,6 +73,8 @@ export default async function SettingsPage() {
             (settings.report_language as "id" | "en" | "both") ?? "id",
         }}
       />
+
+      <PeriodsManager periods={periods ?? []} />
 
       <TeamAccountsManager
         staffList={(staffRows ?? []) as StaffMember[]}
